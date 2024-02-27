@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-# Corrected tkinter import
 import tkinter as tk
-root = tk.Tk()
-root.geometry("422x700")
 from tkinter import ttk
 from tkinter import messagebox
 import subprocess
+
+root = tk.Tk()
+root.title("macOS Utility Installer")
+root.geometry("422x600")
 
 def check_homebrew():
     try:
@@ -31,48 +32,25 @@ def reset_checkboxes():
         var.set(False)
 
 def install_apps():
-    installation_initiated = False  # Flag to track if any installations were actually initiated
+    installation_initiated = False
     for app, var in apps.items():
-        if var.get():  # Check if the app is selected for installation
+        if var.get():
             if is_app_installed(app):
                 messagebox.showinfo("Already Installed", f"{app} is already installed.")
             else:
                 subprocess.Popen(["brew", "install", app], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                installation_initiated = True  # Set the flag to True as an installation was initiated
+                installation_initiated = True
     if installation_initiated:
         messagebox.showinfo("Installation", "Installation process initiated.")
     reset_checkboxes()
 
-root.title("macOS Utility Installer")
-
-if not check_homebrew():
-    if messagebox.askyesno("Homebrew Not Found", "Homebrew is not installed. Would you like to install it?"):
-        install_homebrew()
-
-# Categorized apps setup
-categories = {
-    "Productivity": ["hammerspoon", "iterm2"],
-    "Utilities": ["keycastr", "vanilla", "only-switch"],
-    "Creative": ["loom", "bunch"],
-    "Browser": ["google-chrome", "brave-browser", "arc"],
-    "Communications": ["chatterino", "discord", "signal", "skype", "slack", "microsoft-teams", "telegram", "thunderbird"]  # Added Communications category
-}
-
-# Adjust apps dictionary to be empty initially
-apps = {}
-
-# Create LabelFrames and Checkbuttons for each category
-for category_name, apps_list in categories.items():
-    category_frame = ttk.LabelFrame(root, text=category_name)
-    category_frame.pack(padx=10, pady=5, fill="both", expand=True)
-    for app_name in apps_list:
-        apps[app_name] = tk.BooleanVar(value=False)
-        ttk.Checkbutton(category_frame, text=app_name, variable=apps[app_name]).pack(anchor='w', side="top", padx=5, pady=2)
-
-
 def select_all_apps():
     for var in apps.values():
         var.set(True)
+
+def unselect_all_apps():
+    for var in apps.values():
+        var.set(False)
 
 def uninstall_selected_apps():
     for app, var in apps.items():
@@ -81,20 +59,58 @@ def uninstall_selected_apps():
     messagebox.showinfo("Uninstallation", "Selected applications have been uninstalled.")
     reset_checkboxes()
 
-# Create a frame to contain the select and unselect buttons
-button_frame = tk.Frame(root)
-button_frame.pack(padx=5, pady=5)
+# Categorized apps setup
+categories = {
+    "Productivity": ["hammerspoon", "iterm2"],
+    "Utilities": ["keycastr", "vanilla", "only-switch"],
+    "Creative": ["loom", "Firefox", "bunch"],
+    "Browser": ["google-chrome", "brave-browser", "arc"],
+    "Communications": ["chatterino", "discord", "signal", "skype", "slack", "microsoft-teams", "telegram", "thunderbird"]
+}
 
-# Define the unselect_all_apps function
-def unselect_all_apps():
-    for var in apps.values():
-        var.set(False)
+apps = {}
 
-ttk.Button(button_frame, text="Select All Apps", command=select_all_apps).pack(side='left', padx=5, pady=5)
-ttk.Button(button_frame, text="Unselect All Apps", command=unselect_all_apps).pack(side='left', padx=5, pady=5)
+# Scrollable area setup
+canvas = tk.Canvas(root, borderwidth=0)
+scrollbar = tk.Scrollbar(root, orient="vertical", command=canvas.yview)
+scrollable_frame = ttk.Frame(canvas)
 
-# Adjust other buttons similarly
-ttk.Button(root, text="Install Selected Apps", command=install_apps).pack(padx=5, pady=5)
-ttk.Button(root, text="Uninstall Selected Apps", command=uninstall_selected_apps).pack(padx=5, pady=5)
+canvas.configure(yscrollcommand=scrollbar.set)
+canvas.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+canvas_frame = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+
+def _on_frame_configure(event=None):
+    canvas.configure(scrollregion=canvas.bbox("all"))
+
+scrollable_frame.bind("<Configure>", _on_frame_configure)
+
+# Layout for canvas and scrollbar
+canvas.pack(side="left", fill="both", expand=True)
+scrollbar.pack(side="right", fill="y")
+
+# Populate scrollable frame with content
+for category, app_list in categories.items():
+    frame = ttk.LabelFrame(scrollable_frame, text=category)
+    frame.pack(padx=10, pady=5, expand=True, fill="both")
+    for app in app_list:
+        var = tk.BooleanVar(value=False)
+        apps[app] = var
+        ttk.Checkbutton(frame, text=app, variable=var).pack(anchor="w")
+
+# Action buttons at the bottom
+buttons_frame = ttk.Frame(root)
+buttons_frame.pack(fill="x", anchor="s", padx=10, pady=5)
+
+# Instead of using a button_frame to pack buttons side by side,
+# you can directly pack each button into the root window, 
+# ensuring they align vertically and to the left.
+
+# Adjust padx to reduce space between the buttons and the left side of the window
+ttk.Button(root, text="Select All Apps", command=select_all_apps).pack(anchor='w', padx=(10, 0), pady=5)  # Reduce padx, tuple (left, right)
+ttk.Button(root, text="Unselect All Apps", command=unselect_all_apps).pack(anchor='w', padx=(10, 0), pady=5)
+ttk.Button(root, text="Install Selected Apps", command=install_apps).pack(anchor='w', padx=(10, 0), pady=5)
+ttk.Button(root, text="Uninstall Selected Apps", command=uninstall_selected_apps).pack(anchor='w', padx=(10, 0), pady=5)
+
+
 
 root.mainloop()

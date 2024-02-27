@@ -3,6 +3,21 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 import subprocess
+import sys
+
+def check_tkinter_version():
+    # Ensure that the tkinter version is compatible with Python 3.11
+    try:
+        major, minor = tk.Tcl().eval('info patchlevel').split('.')[:2]
+        if int(major) < 8 or (int(major) == 8 and int(minor) < 6):
+            messagebox.showerror("Error", "Python-tk@3.11 is not installed. Please install the correct version.")
+            sys.exit(1)  # Exit if incompatible tkinter version is found
+    except Exception as e:
+        messagebox.showerror("Error", f"An error occurred while checking tkinter version: {e}")
+        sys.exit(1)
+
+# Call the function to check tkinter version
+check_tkinter_version()
 
 root = tk.Tk()
 root.title("macOS Utility Installer")
@@ -16,8 +31,12 @@ def check_homebrew():
         return False
 
 def install_homebrew():
-    subprocess.run('/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"', shell=True)
-    messagebox.showinfo("Installation", "Homebrew has been installed.")
+    if not check_homebrew():
+        subprocess.run('/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"', shell=True)
+        messagebox.showinfo("Installation", "Homebrew has been installed.")
+
+# Ensure Homebrew is installed
+install_homebrew()
 
 def is_app_installed(app):
     try:
@@ -61,10 +80,10 @@ def uninstall_selected_apps():
 
 # Categorized apps setup
 categories = {
-    "Productivity": ["hammerspoon", "iterm2"],
-    "Utilities": ["keycastr", "vanilla", "only-switch"],
-    "Creative": ["loom", "bunch"],
-    "Browser": ["google-chrome", "brave-browser", "arc"],
+    "Productivity": ["hammerspoon", "iterm2", "pastebot"],
+    "Utilities": ["keycastr", "vanilla", "only-switch", "zoom", "appcleaner"],
+    "Creative": ["loom", "bunch", "karabiner-elements"],
+    "Browser": ["google-chrome", "Firefox", "brave-browser", "arc", "orion"],
     "Communications": ["chatterino", "discord", "signal", "skype", "slack", "microsoft-teams", "telegram", "thunderbird"]
 }
 
@@ -101,16 +120,9 @@ for category, app_list in categories.items():
 buttons_frame = ttk.Frame(root)
 buttons_frame.pack(fill="x", anchor="s", padx=10, pady=5)
 
-# Instead of using a button_frame to pack buttons side by side,
-# you can directly pack each button into the root window, 
-# ensuring they align vertically and to the left.
-
-# Adjust padx to reduce space between the buttons and the left side of the window
-ttk.Button(root, text="Select All Apps", command=select_all_apps).pack(anchor='w', padx=(10, 0), pady=5)  # Reduce padx, tuple (left, right)
+ttk.Button(root, text="Select All Apps", command=select_all_apps).pack(anchor='w', padx=(10, 0), pady=5)
 ttk.Button(root, text="Unselect All Apps", command=unselect_all_apps).pack(anchor='w', padx=(10, 0), pady=5)
 ttk.Button(root, text="Install Selected Apps", command=install_apps).pack(anchor='w', padx=(10, 0), pady=5)
 ttk.Button(root, text="Uninstall Selected Apps", command=uninstall_selected_apps).pack(anchor='w', padx=(10, 0), pady=5)
-
-
 
 root.mainloop()
